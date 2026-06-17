@@ -98,28 +98,31 @@ const buildMonthlyInsight = async (userId) => {
 
 const buildSavingsTips = async (userId) => {
   const top = await pool.query(
-    `SELECT.c.name AS .category, SUM(t.amount) AS amount, COUNT(t.id) AS count
-      FROM .transactions .t
-      JOIN.categories.c.ON.c.id = t.category_id
-      WHERE t.user_id = $1
-        AND.t.type = 'expense'
-        AND t.transaction_date >= CURRENT_DATE - INTERVAL .'30 days'
-      GROUP BY c. name
-      ORDER BY amount .DESC
-      LIMIT 5`,
+    `SELECT c.name AS category,
+            SUM(t.amount) AS amount,
+            COUNT(t.id) AS count
+     FROM transactions t
+     JOIN categories c ON c.id = t.category_id
+     WHERE t.user_id = $1
+       AND t.type = 'expense'
+       AND t.transaction_date >= CURRENT_DATE - INTERVAL '30 days'
+     GROUP BY c.name
+     ORDER BY amount DESC
+     LIMIT 5`,
     [userId],
   );
 
   const incomeResult = await pool.query(
     `SELECT COALESCE(SUM(amount), 0) AS income
-      FROM transactions
-      WHERE user_id = $1
-        AND type = 'income'
-        AND transaction_date >= CURRENT_DATE - INTERVAL '30 days'`,
+     FROM transactions
+     WHERE user_id = $1
+       AND type = 'income'
+       AND transaction_date >= CURRENT_DATE - INTERVAL '30 days'`,
     [userId],
   );
 
   const currency = await getUserCurrency(userId);
+
   const content = await generateSavingsTips({
     topCategories: top.rows.map((r) => ({
       category: r.category,
@@ -141,8 +144,8 @@ const buildBudgetAlert = async (userId, categoryId) => {
   }
 
   const budgetRow = await pool.query(
-    `SELECT b .* , c. name AS category_name,
-        COALESCE ( (
+    `SELECT b.* , c.name AS category_name,
+        COALESCE ((
           SELECT SUM(amount) FROM transactions
           WHERE user_id = b.user_id
             AND category_id = b.category_id
