@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Expense Tracker — Architecture & Codebase Documentation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+    />
+    <style>
+      :root {
+        --bg: #07111f;
+        --bg-soft: #0f1b2e;
+        --panel: #14213d;
+        --panel-2: #192947;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --accent: #8b5cf6;
+        --accent-2: #38bdf8;
+        --accent-3: #f59e0b;
+        --success: #34d399;
+        --danger: #fb7185;
+        --border: rgba(148, 163, 184, 0.2);
+        --shadow: 0 10px 35px rgba(0, 0, 0, 0.28);
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+      }
+      a { color: #c4b5fd; text-decoration: none; }
+      a:hover { color: #e9d5ff; }
+      .page {
+        display: grid;
+        grid-template-columns: 300px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        overflow-y: auto;
+        padding: 24px 18px;
+        background: linear-gradient(180deg, rgba(10,17,31,0.98), rgba(9,14,25,0.98));
+        border-right: 1px solid var(--border);
+      }
+      .sidebar h1 {
+        font-size: 1.1rem;
+        margin: 0 0 8px;
+      }
+      .sidebar .subtle { color: var(--muted); font-size: 0.9rem; margin-bottom: 18px; }
+      .sidebar input {
+        width: 100%; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border);
+        background: rgba(255,255,255,0.04); color: var(--text); margin-bottom: 12px;
+      }
+      .sidebar nav a {
+        display: block; padding: 8px 10px; border-radius: 10px; color: var(--text); margin-bottom: 4px;
+      }
+      .sidebar nav a:hover, .sidebar nav a.active { background: rgba(139, 92, 246, 0.18); }
+      .content { padding: 28px 32px 64px; max-width: 1280px; margin: 0 auto; width: 100%; }
+      .hero {
+        background: radial-gradient(circle at top left, rgba(139,92,246,0.25), transparent 35%),
+                    linear-gradient(135deg, rgba(20,33,61,0.95), rgba(8,16,29,0.95));
+        border: 1px solid var(--border); border-radius: 24px; padding: 28px; box-shadow: var(--shadow);
+        margin-bottom: 24px;
+      }
+      .hero h2 { font-size: 2rem; margin: 0 0 10px; }
+      .hero p { color: var(--muted); max-width: 900px; }
+      .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+      .badge { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; background: rgba(255,255,255,0.07); color: #e2e8f0; font-size: 0.9rem; }
+      section { margin-bottom: 22px; }
+      .card {
+        background: linear-gradient(180deg, rgba(20,33,61,0.95), rgba(15,27,46,0.95));
+        border: 1px solid var(--border); border-radius: 18px; padding: 20px 22px; box-shadow: var(--shadow);
+      }
+      .card h3, .card h4 { margin-top: 0; }
+      details { border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; background: rgba(255,255,255,0.03); margin-bottom: 10px; }
+      details summary { cursor: pointer; font-weight: 700; }
+      table { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 14px; }
+      th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+      th { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+      ul { padding-left: 18px; }
+      code, pre { font-family: 'Fira Code', 'Consolas', monospace; }
+      pre { background: #020617; border-radius: 14px; padding: 14px; overflow-x: auto; border: 1px solid var(--border); }
+      .grid { display: grid; gap: 14px; }
+      .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .pill { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; margin-right: 6px; }
+      .pill.green { background: rgba(52,211,153,0.16); color: #86efac; }
+      .pill.blue { background: rgba(56,189,248,0.16); color: #7dd3fc; }
+      .pill.amber { background: rgba(245,158,11,0.16); color: #fcd34d; }
+      .pill.red { background: rgba(251,113,133,0.16); color: #fda4af; }
+      .mono { color: #f8fafc; }
+      .muted { color: var(--muted); }
+      .two-col { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; }
+      .metric { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; }
+      .metric .label { color: var(--muted); font-size: 0.85rem; }
+      .metric .value { font-size: 1.15rem; font-weight: 700; }
+      .footer { color: var(--muted); font-size: 0.92rem; margin-top: 28px; }
+      @media (max-width: 980px) {
+        .page { grid-template-columns: 1fr; }
+        .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+        .content { padding: 20px; }
+        .two-col, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <aside class="sidebar">
+        <h1>AI Expense Tracker</h1>
+        <div class="subtle">Architecture report • React + Vite + Express + PostgreSQL + Gemini</div>
+        <input id="navSearch" type="text" placeholder="Search sections..." />
+        <nav id="toc"></nav>
+      </aside>
+
+      <main class="content">
+        <section class="hero">
+          <h2>Deep architecture documentation for the expense tracker</h2>
+          <p>
+            This project is a full-stack financial assistant that lets users register, create transactions and categories,
+            set budgets, and receive AI-generated insights through Gemini. The system is intentionally simple, secure,
+            and data-oriented: React on the frontend, Express on the backend, PostgreSQL for persistence, and JWT-based auth.
+          </p>
+          <div class="badge-row">
+            <span class="badge">React 19</span>
+            <span class="badge">Vite 8</span>
+            <span class="badge">Express 4</span>
+            <span class="badge">PostgreSQL</span>
+            <span class="badge">JWT</span>
+            <span class="badge">Gemini AI</span>
+            <span class="badge">Docker</span>
+          </div>
+        </section>
+
+        <section id="executive-summary" class="card">
+          <h3>1. Executive Summary</h3>
+          <div class="two-col">
+            <div>
+              <p>
+                The application solves a practical problem: helping users understand and control personal finances without needing a
+                complex enterprise suite. The product is centered on four core loops: capture income and expenses, organize them with categories,
+                enforce spending control with budgets, and get AI-generated interpretation through insights.
+              </p>
+              <p>
+                The architecture is intentionally modular. The frontend is a React single-page application with route-based pages and a shared auth context.
+                The backend exposes a REST API that is protected by JWT middleware and orchestrates all database reads/writes. PostgreSQL stores all
+                entities, while Gemini is used as a side-channel intelligence service for recommendations and summaries.
+              </p>
+            </div>
+            <div class="grid">
+              <div class="metric"><div class="label">Primary user value</div><div class="value">Track money + get AI guidance</div></div>
+              <div class="metric"><div class="label">Backend runtime</div><div class="value">Node.js + Express</div></div>
+              <div class="metric"><div class="label">Data store</div><div class="value">PostgreSQL (not MongoDB)</div></div>
+              <div class="metric"><div class="label">AI layer</div><div class="value">Gemini via Google GenAI SDK</div></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="folder-structure" class="card">
+          <h3>2. Folder Structure</h3>
+          <details open>
+            <summary>Repository layout</summary>
+            <pre><code>ai_expense_tracker/
+├─ backend/
+│  ├─ controllers/
+│  ├─ middleware/
+│  ├─ routes/
+│  ├─ scripts/
+│  ├─ sql/
+│  ├─ utils/
+│  ├─ db.js
+│  ├─ server.js
+│  ├─ Dockerfile
+│  └─ package.json
+├─ frontend/
+│  ├─ public/
+│  ├─ src/
+│  │  ├─ assets/
+│  │  ├─ components/
+│  │  │  └─ charts/ 
+│  │  ├─ context/
+│  │  ├─ lib/
+│  │  ├─ pages/
+│  │  ├─ utils/
+│  │  ├─ App.jsx
+│  │  ├─ index.css
+│  │  └─ main.jsx
+│  ├─ Dockerfile
+│  ├─ vite.config.js
+│  ├─ package.json
+│  └─ .env
+└─ Project Explanation report/</code></pre>
+          </details>
+
+          <details open>
+            <summary>Why each folder exists and how it interacts</summary>
+            <div class="grid">
+              <div class="metric"><div class="label">backend/controllers</div><div class="value">Contains business-logic handlers for each resource; routes delegate here.</div></div>
+              <div class="metric"><div class="label">backend/routes</div><div class="value">Defines HTTP endpoints and applies auth middleware before handlers.</div></div>
+              <div class="metric"><div class="label">backend/middleware</div><div class="value">Centralizes auth and request authorization checks.</div></div>
+              <div class="metric"><div class="label">backend/utils</div><div class="value">Reusable helpers for token signing, default categories, and Gemini integration.</div></div>
+              <div class="metric"><div class="label">backend/sql</div><div class="value">Schema definition used by migration scripts.</div></div>
+              <div class="metric"><div class="label">frontend/src/pages</div><div class="value">Top-level route screens for dashboard, transactions, categories, budgets, and insights.</div></div>
+              <div class="metric"><div class="label">frontend/src/components</div><div class="value">Shared UI and form components consumed by pages.</div></div>
+              <div class="metric"><div class="label">frontend/src/context</div><div class="value">Global auth state and session bootstrap.</div></div>
+              <div class="metric"><div class="label">frontend/src/lib</div><div class="value">Central Axios configuration and API client wrapper.</div></div>
+            </div>
+          </details>
+
+          <details open>
+            <summary>Important files and lifecycle</summary>
+            <table>
+              <thead><tr><th>File</th><th>Purpose</th><th>When it executes</th></tr></thead>
+              <tbody>
+                <tr><td>backend/server.js</td><td>Bootstraps Express, mounts routes, and starts the server.</td><td>On backend startup.</td></tr>
+                <tr><td>backend/db.js</td><td>Creates the PostgreSQL connection pool.</td><td>Imported by controllers and scripts.</td></tr>
+                <tr><td>backend/routes/authRoutes.js</td><td>Exposes login/register/me endpoints.</td><td>On auth-related frontend requests.</td></tr>
+                <tr><td>backend/controllers/authController.js</td><td>Handles registration, login, and fetching current user.</td><td>During auth requests.</td></tr>
+                <tr><td>backend/controllers/transactionController.js</td><td>CRUD + AI analysis for transactions.</td><td>When transactions are read/written/analyzed.</td></tr>
+                <tr><td>backend/controllers/budgetController.js</td><td>CRUD + AI budget analysis.</td><td>When budgets are managed or analyzed.</td></tr>
+                <tr><td>backend/controllers/dashboardController.js</td><td>Aggregated financial summary and charts.</td><td>On dashboard data loads.</td></tr>
+                <tr><td>backend/controllers/insightController.js</td><td>Stores and generates AI insights.</td><td>When the insights page or actions invoke generation.</td></tr>
+                <tr><td>backend/utils/gemini.js</td><td>Wraps Gemini API calls for financial analysis.</td><td>When insight or analysis actions run.</td></tr>
+                <tr><td>frontend/src/main.jsx</td><td>Mounts React app and providers.</td><td>At browser load.</td></tr>
+                <tr><td>frontend/src/App.jsx</td><td>Defines route tree and protected layout.</td><td>At app initialization.</td></tr>
+                <tr><td>frontend/src/context/AuthContext.jsx</td><td>Holds authentication state and session bootstrap.</td><td>During initial page load and login/logout.</td></tr>
+                <tr><td>frontend/src/lib/axios.js</td><td>Configures API client and attaches JWT.</td><td>Every network request.</td></tr>
+              </tbody>
+            </table>
+          </details>
+        </section>
+
+        <section id="frontend-architecture" class="card">
+          <h3>3. Frontend Architecture</h3>
+          <details open>
+            <summary>React architecture</summary>
+            <p>
+              The frontend uses a route-driven React architecture with a layout shell and nested route pages. The app bootstraps through
+              <span class="mono">main.jsx</span>, which wraps the app in <span class="mono">BrowserRouter</span>, <span class="mono">AuthProvider</span>,
+              and the global toaster. The route tree is declared in <span class="mono">App.jsx</span>.
+            </p>
+            <p>
+              The design choice here is to keep the app as a single-page experience while protecting pages behind authentication and centralizing shared UI concerns.
+              The app relies on React state for page-level data and uses Axios-based API calls for backend communication.
+            </p>
+          </details>
+          <details open>
+            <summary>Component hierarchy</summary>
+            <pre><code>App
+└─ Routes
+   ├─ Login / Register (public)
+   └─ ProtectedRoute
+      └─ Layout
+         ├─ Sidebar
+         ├─ Topbar
+         └─ Outlet
+            ├─ Dashboard
+            ├─ Transactions
+            ├─ Categories
+            ├─ Budgets
+            ├─ Insights</code></pre>
+          </details>
+          <details open>
+            <summary>Routing, state management, and UI patterns</summary>
+            <ul>
+              <li><strong>Routing:</strong> React Router handles public routes and protected layout nesting.</li>
+              <li><strong>State management:</strong> Local React state is used per page; global auth lives in AuthContext.</li>
+              <li><strong>Hooks:</strong> useState, useEffect, useMemo are used for data loading, filtering, pagination, and chart preparation.</li>
+              <li><strong>Context:</strong> AuthContext exposes user, loading, login, register, logout.</li>
+              <li><strong>API layer:</strong> Axios instance attached to localStorage token; handles 401 redirects to login.</li>
+              <li><strong>Styling:</strong> Tailwind CSS via Vite plugin; page-level classes create a polished UI.</li>
+            </ul>
+          </details>
+
+          <details open>
+            <summary>Frontend utility and service modules</summary>
+            <table>
+              <thead><tr><th>File</th><th>Role</th></tr></thead>
+              <tbody>
+                <tr><td>frontend/src/lib/axios.js</td><td>Central API client with auth token injection and 401 handling.</td></tr>
+                <tr><td>frontend/src/utils/apiPaths.js</td><td>Centralizes endpoint strings.</td></tr>
+                <tr><td>frontend/src/utils/format.js</td><td>Currency, date, month, and relative time formatting helpers.</td></tr>
+                <tr><td>frontend/src/utils/icons.js</td><td>Maps icon names to lucide-react components.</td></tr>
+                <tr><td>frontend/src/index.css</td><td>Global Tailwind import and animation definitions.</td></tr>
+              </tbody>
+            </table>
+          </details>
+        </section>
+
+        <section id="backend-architecture" class="card">
+          <h3>4. Backend Architecture</h3>
+          <details open>
+            <summary>Express initialization</summary>
+            <p>
+              The server boots in <span class="mono">backend/server.js</span>. It loads environment variables, creates an Express app,
+              enables CORS and JSON parsing, mounts six feature routers, and starts listening on <span class="mono">PORT</span> or 8000.
+            </p>
+            <pre><code>const app = express();
+app.use(cors());
+app.use(express.json());
+app.use('/api/auth', authRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/budgets', budgetRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/insights', insightsRoutes);</code></pre>
+          </details>
+          <details open>
+            <summary>Middleware order and request flow</summary>
+            <ol>
+              <li>Express receives the request.</li>
+              <li>CORS and JSON middleware run.</li>
+              <li>Route-specific middleware may run (auth on protected routes).</li>
+              <li>Controller logic executes.</li>
+              <li>Database access runs through the shared pool.</li>
+              <li>A JSON response is returned.</li>
+            </ol>
+          </details>
+          <details open>
+            <summary>Routers and controllers</summary>
+            <table>
+              <thead><tr><th>Router</th><th>Controller responsibilities</th></tr></thead>
+              <tbody>
+                <tr><td>authRoutes</td><td>Register, login, get current user.</td></tr>
+                <tr><td>categoryRoutes</td><td>Create/list/update/delete user categories.</td></tr>
+                <tr><td>transactionRoutes</td><td>Manage transactions and request AI analysis.</td></tr>
+                <tr><td>budgetRoutes</td><td>Manage budgets and request AI budget assessment.</td></tr>
+                <tr><td>dashboardRoutes</td><td>Serve summary and chart series data.</td></tr>
+                <tr><td>insightsRoutes</td><td>List stored insights and generate new ones.</td></tr>
+              </tbody>
+            </table>
+          </details>
+        </section>
+
+        <section id="execution-flow" class="card">
+          <h3>5. Application Execution Flow</h3>
+          <details open>
+            <summary>End-to-end startup and user interaction</summary>
+            <ol>
+              <li>The browser loads the Vite frontend entry point through index.html.</li>
+              <li>React mounts <span class="mono">main.jsx</span> and renders the app inside <span class="mono">BrowserRouter</span>.</li>
+              <li>The AuthProvider checks localStorage for a JWT token.</li>
+              <li>If a token exists, it calls <span class="mono">/auth/me</span> and restores user state; otherwise it leaves the user unauthenticated.</li>
+              <li>The router decides whether to show public auth pages or the protected layout.</li>
+              <li>When the user navigates to a page, the matching route component loads and triggers its own data requests.</li>
+              <li>Each page uses Axios, which attaches the JWT to the Authorization header.</li>
+              <li>Requests hit Express routes, which run auth middleware where needed.</li>
+              <li>Controllers query PostgreSQL through the shared connection pool.</li>
+              <li>For insights and analysis, Gemini is invoked with structured prompts and the result is parsed as JSON.</li>
+              <li>The frontend updates local state and re-renders the UI, often with toast notifications and charts.</li>
+            </ol>
+          </details>
+          <pre><code>Browser -> React Router -> AuthContext -> Axios -> Express Route -> Controller -> PostgreSQL -> Response -> React State -> UI</code></pre>
+        </section>
+
+        <section id="request-lifecycle" class="card">
+          <h3>6. Request Lifecycle: A Real API Example</h3>
+          <details open>
+            <summary>Create a transaction</summary>
+            <pre><code>POST /api/transactions</code></pre>
+            <ol>
+              <li><strong>Browser:</strong> The user submits the transaction form.</li>
+              <li><strong>React component:</strong> <span class="mono">TransactionForm.jsx</span> builds the payload.</li>
+              <li><strong>Axios:</strong> The client posts to the backend and adds the JWT header.</li>
+              <li><strong>Express route:</strong> <span class="mono">transactionRoutes.js</span> routes to <span class="mono">createTransaction</span>.</li>
+              <li><strong>Middleware:</strong> <span class="mono">protect</span> validates the token and populates <span class="mono">req.userId</span>.</li>
+              <li><strong>Controller:</strong> Validates data, inserts the transaction, and returns the row.</li>
+              <li><strong>Database:</strong> PostgreSQL stores the row in the transactions table.</li>
+              <li><strong>Response:</strong> The backend returns the new transaction object.</li>
+              <li><strong>React state:</strong> The parent page refreshes its transaction list.</li>
+              <li><strong>Re-render:</strong> The table updates and the modal closes.</li>
+            </ol>
+          </details>
+          <pre><code>// frontend
+await api.post(API_PATHS.TRANSACTIONS.CREATE, payload);
+
+// backend
+await pool.query(
+  `INSERT INTO transactions (user_id, category_id, amount, type, description, notes, transaction_date)
+   VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+  [req.userId, categoryId || null, amount, type, description || null, notes || null, transactionDate]
+);</code></pre>
+        </section>
+
+        <section id="authentication-flow" class="card">
+          <h3>7. Authentication Flow</h3>
+          <details open>
+            <summary>How auth works</summary>
+            <p>
+              Authentication is implemented with JWTs signed on the server using the <span class="mono">jsonwebtoken</span> package.
+              The login and register handlers create a token using <span class="mono">signToken(user.id)</span> and return it to the client.
+              The frontend stores it in localStorage and sends it as a Bearer token on subsequent calls.
+            </p>
+          </details>
+          <details open>
+            <summary>Sequence</summary>
+            <pre><code>User -> Login form -> AuthContext.login -> POST /auth/login -> authController.login -> JWT sign -> client stores token -> later /auth/me -> protect middleware -> user record returned</code></pre>
+          </details>
+          <details open>
+            <summary>Security notes</summary>
+            <ul>
+              <li>Passwords are hashed with bcrypt before storage.</li>
+              <li>JWTs carry only the user identifier; the backend trusts them after signature verification.</li>
+              <li>The protect middleware blocks unauthorized requests with 401.</li>
+              <li>The frontend removes the token and redirects to login on 401.</li>
+            </ul>
+          </details>
+        </section>
+
+        <section id="database" class="card">
+          <h3>8. Database</h3>
+          <details open>
+            <summary>Database choice and design principles</summary>
+            <p>
+              The project uses PostgreSQL, not MongoDB. The schema is relational and intentionally normalized around users, categories,
+              transactions, budgets, and AI insight records. It favors explicit foreign keys and data integrity constraints over document flexibility.
+            </p>
+          </details>
+          <details open>
+            <summary>Schema overview</summary>
+            <table>
+              <thead><tr><th>Table</th><th>Purpose</th><th>Key relationships</th></tr></thead>
+              <tbody>
+                <tr><td>users</td><td>Stores authentication and profile data.</td><td>Parent for categories, transactions, budgets, ai_insights.</td></tr>
+                <tr><td>categories</td><td>Stores transaction categories and tags.</td><td>Belongs to a user; linked by transactions and budgets.</td></tr>
+                <tr><td>transactions</td><td>Represents financial events.</td><td>Belongs to a user and optionally a category.</td></tr>
+                <tr><td>budgets</td><td>Represents spending limits per category.</td><td>Belongs to user + category.</td></tr>
+                <tr><td>ai_insights</td><td>Stores generated AI analysis output.</td><td>Belongs to a user.</td></tr>
+              </tbody>
+            </table>
+          </details>
+          <details open>
+            <summary>Table-by-table field notes</summary>
+            <ul>
+              <li><strong>users:</strong> id, name, email, password_hash, currency, created_at.</li>
+              <li><strong>categories:</strong> id, user_id, name, type, icon, color, is_default, created_at.</li>
+              <li><strong>transactions:</strong> id, user_id, category_id, amount, type, description, notes, transaction_date, created_at.</li>
+              <li><strong>budgets:</strong> id, user_id, category_id, amount, period, start_date, created_at.</li>
+              <li><strong>ai_insights:</strong> id, user_id, insight_type, period_start, period_end, content_json, created_at.</li>
+            </ul>
+          </details>
+          <details open>
+            <summary>Important queries and CRUD behavior</summary>
+            <ul>
+              <li>Registration inserts into users and then seeds categories for the new user.</li>
+              <li>Login selects users by email and compares the incoming password to password_hash.</li>
+              <li>Transactions are filtered by user, date, category, type, and search string.</li>
+              <li>Budgets are joined with categories and transactions to calculate spent values.</li>
+              <li>Dashboard summary aggregates monthly income and expenses with windowed SQL.</li>
+              <li>Insights are stored as JSON in ai_insights.content_json.</li>
+            </ul>
+          </details>
+          <pre><code>-- Example: get recent transactions with category details
+SELECT t.*, c.name AS category_name
+FROM transactions t
+LEFT JOIN categories c ON t.category_id = c.id
+WHERE t.user_id = $1
+ORDER BY t.transaction_date DESC, t.id DESC;</code></pre>
+        </section>
+
+        <section id="gemini" class="card">
+          <h3>9. Gemini AI Integration</h3>
+          <details open>
+            <summary>Where Gemini is initialized</summary>
+            <p>
+              The integration lives in <span class="mono">backend/utils/gemini.js</span>. It creates a <span class="mono">GoogleGenAI</span>
+              instance from the <span class="mono">GEMINI_API_KEY</span> environment variable. The app uses the Gemini 2.5 Flash model.
+            </p>
+          </details>
+          <details open>
+            <summary>How it works</summary>
+            <ul>
+              <li>Controllers collect structured financial data from PostgreSQL.</li>
+              <li>They pass that data to dedicated functions such as <span class="mono">generateMonthlyInsight</span> or <span class="mono">analyzeBudgetList</span>.</li>
+              <li>These functions build a prompt, call Gemini, strip markdown fences, and parse the response as JSON.</li>
+              <li>The parsed result is persisted in <span class="mono">ai_insights.content_json</span>.</li>
+            </ul>
+          </details>
+          <details open>
+            <summary>AI-related functions</summary>
+            <table>
+              <thead><tr><th>Function</th><th>Purpose</th></tr></thead>
+              <tbody>
+                <tr><td>generateMonthlyInsight</td><td>Creates a monthly health summary with score, highlights, concerns, recommendations.</td></tr>
+                <tr><td>generateBudgetAlert</td><td>Generates a budget alert with severity and actions.</td></tr>
+                <tr><td>generateSavingsTips</td><td>Builds personalized savings suggestions.</td></tr>
+                <tr><td>analyzeTransactionList</td><td>Provides insight from a selected set of transactions.</td></tr>
+                <tr><td>analyzeBudgetList</td><td>Rates each budget as good / caution / concerning.</td></tr>
+              </tbody>
+            </table>
+          </details>
+        </section>
+
+        <section id="api-docs" class="card">
+          <h3>10. API Documentation</h3>
+          <table>
+            <thead><tr><th>Endpoint</th><th>Method</th><th>Auth</th><th>Controller</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td>/api/auth/register</td><td>POST</td><td>No</td><td>register</td><td>Creates user, hashes password, seeds default categories, returns JWT.</td></tr>
+              <tr><td>/api/auth/login</td><td>POST</td><td>No</td><td>login</td><td>Validates credentials and returns user payload + token.</td></tr>
+              <tr><td>/api/auth/me</td><td>GET</td><td>Yes</td><td>getMe</td><td>Returns current user profile.</td></tr>
+              <tr><td>/api/categories</td><td>GET</td><td>Yes</td><td>getCategories</td><td>Lists categories for the signed-in user.</td></tr>
+              <tr><td>/api/categories</td><td>POST</td><td>Yes</td><td>createCategory</td><td>Creates a category for the signed-in user.</td></tr>
+              <tr><td>/api/categories/:id</td><td>PUT</td><td>Yes</td><td>updateCategory</td><td>Updates name/icon/color for a category owned by the user.</td></tr>
+              <tr><td>/api/categories/:id</td><td>DELETE</td><td>Yes</td><td>deleteCategory</td><td>Deletes a category for the signed-in user.</td></tr>
+              <tr><td>/api/transactions</td><td>GET</td><td>Yes</td><td>getTransactions</td><td>Supports filters for date, category, type, search, limit, offset.</td></tr>
+              <tr><td>/api/transactions</td><td>POST</td><td>Yes</td><td>createTransaction</td><td>Creates a new transaction.</td></tr>
+              <tr><td>/api/transactions/analyze</td><td>POST</td><td>Yes</td><td>analyzeTransactions</td><td>Uses Gemini to analyze a provided transaction set.</td></tr>
+              <tr><td>/api/transactions/:id</td><td>GET</td><td>Yes</td><td>getTransactionById</td><td>Fetches one transaction if it belongs to the current user.</td></tr>
+              <tr><td>/api/transactions/:id</td><td>PUT</td><td>Yes</td><td>updateTransaction</td><td>Updates a transaction owned by the current user.</td></tr>
+              <tr><td>/api/transactions/:id</td><td>DELETE</td><td>Yes</td><td>deleteTransaction</td><td>Deletes a transaction owned by the current user.</td></tr>
+              <tr><td>/api/budgets</td><td>GET</td><td>Yes</td><td>getBudgets</td><td>Returns budgets joined with current spending totals.</td></tr>
+              <tr><td>/api/budgets</td><td>POST</td><td>Yes</td><td>createBudget</td><td>Creates a budget for a category.</td></tr>
+              <tr><td>/api/budgets/analyze</td><td>POST</td><td>Yes</td><td>analyzeBudgets</td><td>Uses Gemini to rate budgets.</td></tr>
+              <tr><td>/api/budgets/:id</td><td>PUT</td><td>Yes</td><td>updateBudget</td><td>Updates budget amount and period.</td></tr>
+              <tr><td>/api/budgets/:id</td><td>DELETE</td><td>Yes</td><td>deleteBudget</td><td>Deletes a budget.</td></tr>
+              <tr><td>/api/dashboard/summary</td><td>GET</td><td>Yes</td><td>getSummary</td><td>Returns monthly financial KPIs.</td></tr>
+              <tr><td>/api/dashboard/category-breakdown</td><td>GET</td><td>Yes</td><td>getCategoryBreakdown</td><td>Returns expense totals by category.</td></tr>
+              <tr><td>/api/dashboard/monthly-trend</td><td>GET</td><td>Yes</td><td>getMonthlyTrend</td><td>Returns 6-month trend data.</td></tr>
+              <tr><td>/api/insights</td><td>GET</td><td>Yes</td><td>getInsights</td><td>Returns stored AI insight records.</td></tr>
+              <tr><td>/api/insights/generate</td><td>POST</td><td>Yes</td><td>generateInsight</td><td>Generates monthly summary, savings tips, or budget alert.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="components" class="card">
+          <h3>11. React Components</h3>
+          <details open>
+            <summary>Every major component and its role</summary>
+            <table>
+              <thead><tr><th>Component</th><th>Purpose</th></tr></thead>
+              <tbody>
+                <tr><td>App.jsx</td><td>Declares top-level routes and protected layout.</td></tr>
+                <tr><td>Layout.jsx</td><td>Provides shared shell with sidebar and topbar.</td></tr>
+                <tr><td>ProtectedRoute.jsx</td><td>Blocks unauthenticated access to protected pages.</td></tr>
+                <tr><td>Sidebar.jsx</td><td>Navigation and logout entry point.</td></tr>
+                <tr><td>Topbar.jsx</td><td>Displays greeting and date.</td></tr>
+                <tr><td>AuthHero.jsx</td><td>Decorative auth page visual.</td></tr>
+                <tr><td>Login.jsx</td><td>Login form and submission flow.</td></tr>
+                <tr><td>Register.jsx</td><td>Registration form with currency selection.</td></tr>
+                <tr><td>Dashboard.jsx</td><td>Summary KPI cards, recent transactions, budget status.</td></tr>
+                <tr><td>Transactions.jsx</td><td>List/filter/sort/paginate transactions and trigger AI insights.</td></tr>
+                <tr><td>Categories.jsx</td><td>Manage categories.</td></tr>
+                <tr><td>Budgets.jsx</td><td>Manage budget entries and AI evaluations.</td></tr>
+                <tr><td>Insights.jsx</td><td>Generate and view AI-produced analyses.</td></tr>
+                <tr><td>TransactionForm.jsx</td><td>Creates/edits transactions.</td></tr>
+                <tr><td>CategoryForm.jsx</td><td>Creates/edits categories with icon/color picker.</td></tr>
+                <tr><td>BudgetForm.jsx</td><td>Creates/edits budgets.</td></tr>
+                <tr><td>InsightCard.jsx</td><td>Displays insight content in collapsible cards.</td></tr>
+                <tr><td>KpiCard.jsx</td><td>Displays dashboard KPI values.</td></tr>
+                <tr><td>CategoryBadge.jsx</td><td>Displays a category icon + name badge.</td></tr>
+                <tr><td>StatusPill.jsx</td><td>Displays styled status labels.</td></tr>
+                <tr><td>EmptyState.jsx</td><td>Displays empty-state UI.</td></tr>
+                <tr><td>Spinner.jsx</td><td>Shared loading spinner.</td></tr>
+                <tr><td>Modal.jsx</td><td>Re-usable modal dialog wrapper.</td></tr>
+                <tr><td>Button.jsx</td><td>Shared button component with variants.</td></tr>
+                <tr><td>Input.jsx</td><td>Styled form input.</td></tr>
+                <tr><td>Select.jsx</td><td>Styled select control.</td></tr>
+                <tr><td>Textarea.jsx</td><td>Styled multi-line input.</td></tr>
+              </tbody>
+            </table>
+          </details>
+        </section>
+
+        <section id="controllers" class="card">
+          <h3>12. Backend Controllers</h3>
+          <details open>
+            <summary>Controller responsibilities</summary>
+            <table>
+              <thead><tr><th>Controller</th><th>Functions</th><th>Behavior</th></tr></thead>
+              <tbody>
+                <tr><td>authController</td><td>register/login/getMe</td><td>Handles account creation and session restoration.</td></tr>
+                <tr><td>categoryController</td><td>getCategories/createCategory/updateCategory/deleteCategory</td><td>Manages user categories with ownership checks.</td></tr>
+                <tr><td>transactionController</td><td>getTransactions/createTransaction/getTransactionById/updateTransaction/deleteTransaction/analyzeTransactions</td><td>CRUD operations and AI analysis.</td></tr>
+                <tr><td>budgetController</td><td>getBudgets/createBudget/updateBudget/deleteBudget/analyzeBudgets</td><td>Budget CRUD plus AI scoring.</td></tr>
+                <tr><td>dashboardController</td><td>getSummary/getCategoryBreakdown/getMonthlyTrend</td><td>Aggregated analytics.</td></tr>
+                <tr><td>insightController</td><td>getInsights/generateInsight</td><td>Stores and generates financial intelligence.</td></tr>
+              </tbody>
+            </table>
+          </details>
+        </section>
+
+        <section id="middleware" class="card">
+          <h3>13. Middleware</h3>
+          <details open>
+            <summary>Auth middleware</summary>
+            <p>
+              The project has one core middleware: <span class="mono">protect</span>. It reads the Authorization header, expects a Bearer token,
+              verifies it with the JWT secret, and injects <span class="mono">req.userId</span> into the request when valid.
+            </p>
+            <pre><code>export const protect = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'Not authorized, no token' });
+  }
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
+  } catch {
+    return res.status(401).json({ message: 'Not authorized, token failed' });
+  }
+};</code></pre>
+          </details>
+        </section>
+
+        <section id="env" class="card">
+          <h3>14. Environment Variables</h3>
+          <table>
+            <thead><tr><th>Variable</th><th>Why it exists</th><th>Where used</th></tr></thead>
+            <tbody>
+              <tr><td>PORT</td><td>Port for the backend server.</td><td>backend/server.js</td></tr>
+              <tr><td>DATABASE_URL</td><td>Connection URL for PostgreSQL.</td><td>backend/db.js</td></tr>
+              <tr><td>JWT_SECRET</td><td>Sign/verify JWTs for auth.</td><td>backend/utils/jwt.js and middleware/authMiddleware.js</td></tr>
+              <tr><td>GEMINI_API_KEY</td><td>Allows the backend to call Gemini.</td><td>backend/utils/gemini.js</td></tr>
+              <tr><td>VITE_API_URL</td><td>Sets the frontend’s API base URL.</td><td>frontend/src/lib/axios.js</td></tr>
+            </tbody>
+          </table>
+          <p class="muted">Secrets should never be committed; the frontend environment file is client-visible and should only contain non-sensitive public values.</p>
+        </section>
+
+        <section id="docker" class="card">
+          <h3>15. Docker</h3>
+          <details open>
+            <summary>Backend image</summary>
+            <pre><code>FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 5000
+CMD ["npm", "start"]</code></pre>
+            <p>The backend Dockerfile installs dependencies, copies source, exposes port 5000, and launches the Node server.</p>
+          </details>
+          <details open>
+            <summary>Frontend image</summary>
+            <pre><code>FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 5173
+CMD ["npm", "run", "dev", "--", "--host"]</code></pre>
+            <p>The frontend Dockerfile runs the Vite dev server inside a container and exposes port 5173.</p>
+          </details>
+        </section>
+
+        <section id="build-process" class="card">
+          <h3>16. Build Process</h3>
+          <details open>
+            <summary>Install and run</summary>
+            <ul>
+              <li><strong>Backend:</strong> npm install, npm run dev or npm start.</li>
+              <li><strong>Frontend:</strong> npm install, npm run dev, npm run build.</li>
+            </ul>
+          </details>
+          <details open>
+            <summary>Vite behavior</summary>
+            <p>
+              Vite serves modules on demand with fast HMR. The production build bundles the React app into static assets that can be hosted behind any static file server.
+              Tailwind and React plugin are enabled in <span class="mono">vite.config.js</span>.
+            </p>
+          </details>
+        </section>
+
+        <section id="error-handling" class="card">
+          <h3>17. Error Handling</h3>
+          <ul>
+            <li><strong>Frontend:</strong> forms show toast notifications using react-hot-toast and surface backend error messages.</li>
+            <li><strong>Backend:</strong> controllers catch errors, log them, and return structured JSON error responses.</li>
+            <li><strong>Database:</strong> duplicate key errors are handled explicitly in category and budget creation.</li>
+            <li><strong>Gemini:</strong> AI failures are wrapped in user-facing errors and returned as failed insight operations.</li>
+          </ul>
+        </section>
+
+        <section id="security-performance" class="card">
+          <h3>18. Security Analysis + 19. Performance Analysis</h3>
+          <details open>
+            <summary>Security analysis</summary>
+            <ul>
+              <li>JWT-based auth protects backend routes.</li>
+              <li>Passwords are hashed using bcrypt.</li>
+              <li>Each resource query is scoped to the current user.</li>
+              <li>Users cannot access other users’ data because every query uses <span class="mono">req.userId</span>.</li>
+            </ul>
+          </details>
+          <details open>
+            <summary>Performance analysis</summary>
+            <ul>
+              <li>The frontend loads data with parallel requests where appropriate, such as the dashboard.</li>
+              <li>Transactions use the browser-side useMemo to reduce re-computation of filtered arrays.</li>
+              <li>Charts render from pre-shaped arrays, which is ideal for Recharts.</li>
+              <li>Some opportunities remain: adding server-side pagination, request caching, and query optimization would help as the dataset grows.</li>
+            </ul>
+          </details>
+        </section>
+
+        <section id="walkthrough" class="card">
+          <h3>20. Code Walkthrough</h3>
+          <details open>
+            <summary>From app startup to interactive UI</summary>
+            <ol>
+              <li>index.html loads and Vite serves the entry bundle.</li>
+              <li>main.jsx mounts React into the root element.</li>
+              <li>BrowserRouter enables navigation.</li>
+              <li>AuthProvider calls the /auth/me endpoint if a token exists.</li>
+              <li>App.jsx chooses public auth routes or the protected layout.</li>
+              <li>Layout renders sidebar/topbar and child routes.</li>
+              <li>Dashboard page loads summary, trend, breakdown, recent transactions, and budgets using Promise.all.</li>
+              <li>The backend responds with JSON payloads, the UI stores them in local state, and charts render.</li>
+              <li>The user can then create, edit, and delete transactions, budgets, and categories through forms that call the API and refresh the view.</li>
+            </ol>
+          </details>
+        </section>
+
+        <section id="learning-notes" class="card">
+          <h3>21. Learning Notes</h3>
+          <details open>
+            <summary>Core concepts and why they exist</summary>
+            <ul>
+              <li><strong>JWT auth:</strong> used because the app is stateless and API-driven.</li>
+              <li><strong>PostgreSQL:</strong> chosen for strong relational semantics and SQL-based reporting.</li>
+              <li><strong>Gemini integration:</strong> used to add intelligence without building a custom ML backend.</li>
+              <li><strong>React Router:</strong> appropriate because the app is a multi-page SPA with protected routes.</li>
+              <li><strong>Axios interceptors:</strong> centralize auth and global error handling.</li>
+            </ul>
+          </details>
+        </section>
+
+        <section id="diagrams" class="card">
+          <h3>22. Mermaid Diagrams</h3>
+          <details open>
+            <summary>Folder structure</summary>
+            <pre class="mermaid">graph TD
+  A[ai_expense_tracker] --> B[backend]
+  A --> C[frontend]
+  B --> D[controllers]
+  B --> E[routes]
+  B --> F[utils]
+  B --> G[sql]
+  C --> H[src/pages]
+  C --> I[src/components]
+  C --> J[src/context]
+  C --> K[src/lib]</pre>
+          </details>
+          <details open>
+            <summary>Frontend architecture</summary>
+            <pre class="mermaid">flowchart LR
+  Main[main.jsx] --> Router[BrowserRouter]
+  Router --> Provider[AuthProvider]
+  Provider --> App[App.jsx]
+  App --> Pages[Pages]
+  Pages --> Components[Shared Components]
+  Components --> Charts[Charts and UI primitives]
+  Pages --> API[Axios API Client]</pre>
+          </details>
+          <details open>
+            <summary>Backend architecture</summary>
+            <pre class="mermaid">flowchart LR
+  Client[Client] --> Server[Express Server]
+  Server --> Routes[Routes]
+  Routes --> Controllers[Controllers]
+  Controllers --> DB[(PostgreSQL)]
+  Controllers --> Gemini[Gemini API]</pre>
+          </details>
+          <details open>
+            <summary>Authentication flow</summary>
+            <pre class="mermaid">sequenceDiagram
+  participant U as User
+  participant F as Frontend
+  participant B as Backend
+  participant DB as Postgres
+  U->>F: Enters credentials
+  F->>B: POST /auth/login
+  B->>DB: Lookup user + password hash
+  DB-->>B: User record
+  B-->>F: JWT token
+  F-->>U: Session established
+  F->>B: GET /auth/me with Bearer token
+  B-->>F: Current user profile</pre>
+          </details>
+          <details open>
+            <summary>Request lifecycle</summary>
+            <pre class="mermaid">flowchart TD
+  A[React Component] --> B[Axios]
+  B --> C[Express Route]
+  C --> D[protect middleware]
+  D --> E[Controller]
+  E --> F[(PostgreSQL)]
+  F --> E
+  E --> G[JSON response]
+  G --> H[React state update]
+  H --> I[UI re-render]</pre>
+          </details>
+          <details open>
+            <summary>Database relationships</summary>
+            <pre class="mermaid">erDiagram
+  USERS ||--o{ CATEGORIES : owns
+  USERS ||--o{ TRANSACTIONS : records
+  USERS ||--o{ BUDGETS : defines
+  USERS ||--o{ AI_INSIGHTS : stores
+  CATEGORIES ||--o{ TRANSACTIONS : classifies
+  CATEGORIES ||--o{ BUDGETS : budgets</pre>
+          </details>
+        </section>
+
+        <section id="interview-prep" class="card">
+          <h3>23. Interview Preparation</h3>
+          <details open>
+            <summary>Possible questions and ideal answers</summary>
+            <ul>
+              <li><strong>Why use PostgreSQL here?</strong> Because the data is relational and benefits from explicit schema constraints, joins, and reporting.</li>
+              <li><strong>Why is auth implemented with JWTs?</strong> To keep the backend stateless and support simple API-based client interactions.</li>
+              <li><strong>Why store insight results in a table?</strong> To provide history, persistence, and consistent rendering of past AI analyses.</li>
+              <li><strong>How would you scale this app?</strong> By adding server-side pagination, caching, index tuning, and possibly a queue for AI generation.</li>
+            </ul>
+          </details>
+        </section>
+
+        <div class="footer">
+          Generated documentation for the AI Expense Tracker project. The report reflects the source currently in the repository and focuses on the architecture, runtime flow, and design reasoning used by the implementation.
+        </div>
+      </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const toc = document.getElementById('toc');
+        const headings = Array.from(document.querySelectorAll('section[id]'));
+        const items = headings.map((section) => ({
+          id: section.id,
+          title: section.querySelector('h3')?.textContent || section.id,
+        }));
+        toc.innerHTML = items.map((item) => `<a href="#${item.id}">${item.title}</a>`).join('');
+
+        const search = document.getElementById('navSearch');
+        search.addEventListener('input', (e) => {
+          const q = e.target.value.toLowerCase();
+          const links = toc.querySelectorAll('a');
+          links.forEach((link) => {
+            const match = link.textContent.toLowerCase().includes(q);
+            link.style.display = match ? 'block' : 'none';
+          });
+        });
+
+        document.querySelectorAll('a[href^="#"]').forEach((link) => {
+          link.addEventListener('click', () => {
+            document.querySelectorAll('.sidebar nav a').forEach((a) => a.classList.remove('active'));
+            link.classList.add('active');
+          });
+        });
+
+        hljs.highlightAll();
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+      });
+    </script>
+  </body>
+</html>
