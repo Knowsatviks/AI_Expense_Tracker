@@ -13,7 +13,7 @@ CREATE TABLE categories (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(50) NOT NULL,
-    type VARCHAR(10) NOT NULL CHECK (type IN('income', 'expense')),
+    type VARCHAR(10) NOT NULL CHECK (type IN ('income', 'expense')),
     icon VARCHAR(50),
     color VARCHAR(7),
     is_default BOOLEAN DEFAULT FALSE,
@@ -24,24 +24,28 @@ CREATE TABLE categories (
 CREATE TABLE transactions (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    category_id INT NOT NULL REFERENCES categories(id) ON DELETE SET NULL,
+    category_id INT REFERENCES categories(id) ON DELETE SET NULL,
     amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
-    type VARCHAR(10) NOT NULL CHECK (type IN('income', 'expense')),
+    type VARCHAR(10) NOT NULL CHECK (type IN ('income', 'expense')),
     description VARCHAR(255),
     notes TEXT,
     transaction_date DATE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_txn_user_date ON transactions(user_id, transaction_date DESC);
-CREATE INDEX idx_txn_category ON transactions(category_id);
+CREATE INDEX idx_txn_user_date
+ON transactions(user_id, transaction_date DESC);
+
+CREATE INDEX idx_txn_category
+ON transactions(category_id);
 
 CREATE TABLE budgets (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     category_id INT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
     amount NUMERIC(12, 2) NOT NULL CHECK (amount > 0),
-    period VARCHAR(10) NOT NULL DEFAULT 'monthly' CHECK (period IN('weekly', 'monthly')),
+    period VARCHAR(10) NOT NULL DEFAULT 'monthly'
+        CHECK (period IN ('weekly', 'monthly')),
     start_date DATE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE (user_id, category_id, period)
@@ -57,4 +61,5 @@ CREATE TABLE ai_insights (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_insights_user_created ON ai_insights(user_id, created_at DESC);
+CREATE INDEX idx_insights_user_created
+ON ai_insights(user_id, created_at DESC);
